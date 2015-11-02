@@ -13,7 +13,7 @@ module hello(
 
    wire      busy;
 
-   reg [7:0] message;
+   reg [0:15] message;
 
    reg [1:0] state;
 
@@ -22,15 +22,18 @@ module hello(
         data <= 0;
         dataReady <= 0;
 
-        message <= "Q";
+        message <= ":)";
         state <= `STATE_BYTE_START;
      end else begin
         case (state)
-          `STATE_BYTE_START: begin
-             data <= message[7:0];
-             dataReady <= 1;
-             state <= `STATE_BYTE_WAIT_FOR_BUSY;
-          end
+          `STATE_BYTE_START:
+            if (message[0:7] != 0) begin
+               data <= message[0:7];
+               message <= {message[8:15], 8'd0};
+               dataReady <= 1;
+               state <= `STATE_BYTE_WAIT_FOR_BUSY;
+            end else
+              state <= `STATE_STOPPED;
           `STATE_BYTE_WAIT_FOR_BUSY:
             if (busy) begin
                dataReady <= 0;
@@ -38,7 +41,7 @@ module hello(
             end
           `STATE_BYTE_WAIT_FOR_NOT_BUSY:
             if (!busy)
-              state <= `STATE_STOPPED;//`STATE_BYTE_START;
+              state <= `STATE_BYTE_START;
           default: state <= `STATE_STOPPED;
         endcase
      end
